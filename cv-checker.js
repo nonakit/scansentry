@@ -3,7 +3,7 @@
 
 // ===== CONFIGURATION =====
 // IMPORTANT: Replace with your actual Groq API key
-const GROQ_API_KEY = "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"; // <-- Replace with your Groq API key
+const GROQ_API_KEY = "Your API KEY HERE"; // <-- Replace with your Groq API key
 
 // ===== PDF.JS LIBRARY =====
 const pdfjsLib = window['pdfjs-dist/build/pdf'];
@@ -726,3 +726,4 @@ Return ONLY the JSON object.`;
 });
 
 // End of cv-checker.js
+
