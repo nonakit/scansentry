@@ -2,7 +2,7 @@
 // Handles text data + file uploads (profile photo & CV)
 
 // ========== CONFIGURATION ==========
-const GOOGLE_SCRIPT_URL = 'https://script.google.com/macros/s/AKfycbxfqfOhiwUcX1L9E_jrhD9U5jH_mgCi9OvtbIQsOhjVO_OdVWDfjIWjZvI-Iqs3eh6G/exec';
+const GOOGLE_SCRIPT_URL = 'LINK';
 
 // Package data
 const packages = {
@@ -644,4 +644,5 @@ Hi, Please confirm my order.`;
   // Open WhatsApp in new tab
   window.open(whatsappUrl, '_blank');
 }
+
 // ========== END OF SCRIPT ==========
