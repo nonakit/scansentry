@@ -18,6 +18,20 @@ let educationCount = 1;
 let certificationCount = 1;
 let referenceCount = 1;
 
+// Store submission data for WhatsApp confirmation
+let lastSubmissionData = {
+  invoiceId: '',
+  fullName: '',
+  phone: ''
+};
+
+// Generate Invoice ID
+function generateInvoiceId() {
+  const timestamp = Date.now().toString(36).toUpperCase();
+  const random = Math.random().toString(36).substring(2, 6).toUpperCase();
+  return `SS-${timestamp}-${random}`;
+}
+
 // Initialize on page load
 document.addEventListener('DOMContentLoaded', function() {
   const urlParams = new URLSearchParams(window.location.search);
@@ -546,47 +560,50 @@ async function handleFormSubmit(e) {
     console.log('Submitting data with files...');
     console.log('Data size:', JSON.stringify(formDataObj).length, 'bytes');
     
-    // Create hidden input for data payload
-    let dataInput = document.getElementById('hidden_data_input');
-    if (!dataInput) {
-      dataInput = document.createElement('input');
-      dataInput.type = 'hidden';
-      dataInput.id = 'hidden_data_input';
-      dataInput.name = 'data';
-      form.appendChild(dataInput);
+    // Send data via fetch to get the response with invoice ID
+    const response = await fetch(GOOGLE_SCRIPT_URL, {
+      method: 'POST',
+      headers: {
+        'Content-Type': 'application/x-www-form-urlencoded',
+      },
+      body: 'data=' + encodeURIComponent(JSON.stringify(formDataObj))
+    });
+    
+    const result = await response.json();
+    
+    if (result.success) {
+      // Store the invoice ID from server response
+      lastSubmissionData.invoiceId = result.invoiceId;
+      lastSubmissionData.fullName = formDataObj.fullName;
+      lastSubmissionData.phone = formDataObj.phone;
+      
+      console.log('Submission successful! Invoice ID:', result.invoiceId);
+      
+      // Show success modal with the correct invoice ID
+      showSuccessModal();
+      
+      // Reset form
+      form.reset();
+      
+    } else {
+      throw new Error(result.message || 'Submission failed');
     }
-    
-    dataInput.value = JSON.stringify(formDataObj);
-    
-    // Set form attributes for Apps Script submission
-    form.method = 'POST';
-    form.action = GOOGLE_SCRIPT_URL;
-    form.target = 'hidden_iframe';
-    
-    // Clear file input names to prevent duplicate upload
-    const fileInputs = form.querySelectorAll('input[type="file"]');
-    fileInputs.forEach(input => input.name = '');
-    
-    // Submit the form
-    form.submit();
-    
-    console.log('Form submission triggered.');
     
   } catch (error) {
     console.error('Submission error:', error);
-    alert('There was an error submitting your form. Please try again or contact support.');
+    alert('There was an error submitting your form. Please try again or contact support.\n\nError: ' + error.message);
     submitBtn.disabled = false;
     submitBtn.innerHTML = originalBtnText;
-    
-    // Re-enable file input names
-    form.querySelectorAll('input[type="file"]').forEach(input => {
-      if (input.id === 'profilePhoto') input.name = 'profilePhoto';
-      if (input.id === 'existingCV') input.name = 'existingCV';
-    });
   }
 }
 
 function showSuccessModal() {
+  // Update Invoice ID in modal with the server-generated ID
+  const invoiceIdElement = document.getElementById('modalInvoiceId');
+  if (invoiceIdElement && lastSubmissionData.invoiceId) {
+    invoiceIdElement.textContent = lastSubmissionData.invoiceId;
+  }
+  
   const modal = document.getElementById('successModal');
   if (modal) {
     modal.classList.add('active');
@@ -602,3 +619,29 @@ function closeModal() {
   }
   window.location.href = 'index.html';
 }
+
+// WhatsApp confirmation redirect
+function confirmOrderWhatsApp() {
+  const invoiceId = lastSubmissionData.invoiceId || '-';
+  const packageName = document.getElementById('modalPackageName').textContent || '-';
+  const fullName = lastSubmissionData.fullName || '-';
+  const phone = lastSubmissionData.phone || '-';
+  
+  // Create WhatsApp message
+  const message = `Invoice ID: ${invoiceId}
+Package Name: ${packageName}
+Full Name: ${fullName}
+Phone: ${phone}
+
+Hi, Please confirm my order.`;
+  
+  // Encode message for URL
+  const encodedMessage = encodeURIComponent(message);
+  
+  // WhatsApp URL
+  const whatsappUrl = `https://wa.me/628112087181?text=${encodedMessage}`;
+  
+  // Open WhatsApp in new tab
+  window.open(whatsappUrl, '_blank');
+}
+// ========== END OF SCRIPT ==========

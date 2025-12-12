@@ -527,8 +527,13 @@
       </div>
       <h2>Thank You!</h2>
       <p>Your information has been submitted successfully. Our team will start working on your resume and get back to you within the delivery timeframe of your selected package.</p>
+      <p style="margin-top: 0.5rem; font-weight: 500; color: var(--text-dark);">Please click the <strong style="color: var(--primary);">Confirm Order</strong> button below to finalize your order.</p>
       <p class="modal-package">Package: <strong id="modalPackageName">Professional</strong></p>
-      <button class="modal-btn" onclick="closeModal()">Back to Home</button>
+      <p class="modal-invoice">Invoice ID: <strong id="modalInvoiceId">-</strong></p>
+      <div class="modal-buttons">
+        <button class="modal-btn modal-btn-primary" onclick="confirmOrderWhatsApp()">Confirm Order</button>
+        <button class="modal-btn modal-btn-outline" onclick="closeModal()">Back to Home</button>
+      </div>
     </div>
   </div>
 
