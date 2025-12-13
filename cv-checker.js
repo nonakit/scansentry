@@ -2,8 +2,13 @@
 // Uses Groq API for ultra-fast intelligent CV analysis
 
 // ===== CONFIGURATION =====
-// IMPORTANT: Replace with your actual Groq API key
-const GROQ_API_KEY = "Your API KEY HERE"; // <-- Replace with your Groq API key
+// *** SECURITY CHANGE: API key removed from frontend ***
+const NETLIFY_FUNCTIONS_BASE = "https://scansentry-proxy.netlify.app/.netlify/functions";
+
+// Check that your fetch call uses the function name:
+fetch(`${NETLIFY_FUNCTIONS_BASE}/groq-proxy`, { 
+    // ...
+});
 
 // ===== PDF.JS LIBRARY =====
 const pdfjsLib = window['pdfjs-dist/build/pdf'];
@@ -44,7 +49,7 @@ document.addEventListener("DOMContentLoaded", () => {
   const mobileMenu = document.getElementById("mobileMenu");
 
   if (mobileMenuBtn && mobileMenu) {
-    mobileMenuBtn.addEventListener("click", function () {
+    mobileMenuBtn.addEventListener("click", function() {
       this.classList.toggle("active");
       mobileMenu.classList.toggle("active");
     });
@@ -112,7 +117,7 @@ document.addEventListener("DOMContentLoaded", () => {
     selectedFile = file;
     fileName.textContent = file.name;
     fileSize.textContent = formatFileSize(file.size);
-
+    
     uploadDropzone.style.display = "none";
     filePreview.style.display = "flex";
     analyzeBtn.disabled = false;
@@ -137,18 +142,15 @@ document.addEventListener("DOMContentLoaded", () => {
 
   // ===== ANALYZE BUTTON =====
   analyzeBtn.addEventListener("click", async () => {
-    // Check if API key is configured
-    if (!GROQ_API_KEY || GROQ_API_KEY === "YOUR GROQ API KEY") {
-      alert("API key is not configured. Please replace 'YOUR GROQ API KEY' in the code.");
-      return;
-    }
-
+    // *** SECURITY CHANGE: Removed API key check and reference ***
+    
     if (!selectedFile) {
       alert("Please upload a CV file first.");
       return;
     }
 
-    await analyzeCV(GROQ_API_KEY);
+    // *** No API key passed here ***
+    await analyzeCV();
   });
 
   // ===== RECHECK BUTTON =====
@@ -160,14 +162,15 @@ document.addEventListener("DOMContentLoaded", () => {
   });
 
   // ===== CV ANALYSIS =====
-  async function analyzeCV(apiKey) {
+  // *** SECURITY CHANGE: Removed apiKey parameter ***
+  async function analyzeCV() { 
     showLoading();
 
     try {
       // Step 1: Extract text
       updateLoadingStep(1, "Extracting text from document...");
       extractedText = await extractTextFromFile(selectedFile);
-
+      
       if (!extractedText || extractedText.trim().length < 50) {
         throw new Error("Could not extract sufficient text from the document. Please ensure the PDF is not image-based or password protected.");
       }
@@ -178,7 +181,8 @@ document.addEventListener("DOMContentLoaded", () => {
 
       // Step 3: AI Analysis
       updateLoadingStep(3, "AI evaluation in progress...");
-      const analysisResult = await callGroqAPI(apiKey, extractedText);
+      // *** No API key passed here ***
+      const analysisResult = await callGroqAPI(extractedText);
 
       // Step 4: Generate report
       updateLoadingStep(4, "Generating your report...");
@@ -208,37 +212,32 @@ document.addEventListener("DOMContentLoaded", () => {
   async function extractTextFromPDF(file) {
     const arrayBuffer = await file.arrayBuffer();
     const pdf = await pdfjsLib.getDocument({ data: arrayBuffer }).promise;
-
+    
     let fullText = "";
-
+    
     for (let i = 1; i <= pdf.numPages; i++) {
       const page = await pdf.getPage(i);
       const textContent = await page.getTextContent();
       const pageText = textContent.items.map(item => item.str).join(" ");
       fullText += pageText + "\n\n";
     }
-
+    
     return fullText;
   }
 
-  // ===== GROQ API CALL =====
-  async function callGroqAPI(apiKey, cvText) {
+  // ===== GROQ API CALL (NOW SECURE VIA NETLIFY PROXY) =====
+  // *** SECURITY CHANGE: Removed apiKey parameter ***
+  async function callGroqAPI(cvText) {
     const prompt = buildATSAnalysisPrompt(cvText);
+    
+    // The target is YOUR secure Netlify function, not the Groq API directly!
+    const PROXY_ENDPOINT = `${NETLIFY_FUNCTIONS_BASE}/groq-proxy`;
 
-    // Groq's fast inference endpoint uses an OpenAI-compatible schema
-    const GROQ_API_ENDPOINT = "https://api.groq.com/openai/v1/chat/completions";
     // Using the current recommended Groq model
-    const GROQ_MODEL = "llama-3.3-70b-versatile";
+    const GROQ_MODEL = "llama-3.3-70b-versatile"; 
 
-    const response = await fetch(GROQ_API_ENDPOINT, {
-      method: 'POST',
-      headers: {
-        'Content-Type': 'application/json',
-        // Groq API key is passed in the Authorization header
-        'Authorization': `Bearer ${apiKey}`
-      },
-      body: JSON.stringify({
-        model: GROQ_MODEL,
+    const payload = {
+        model: GROQ_MODEL, 
         messages: [{
           role: "user",
           content: prompt
@@ -247,24 +246,33 @@ document.addEventListener("DOMContentLoaded", () => {
         top_p: 0.95,
         // Groq/OpenAI uses 'max_tokens' instead of 'maxOutputTokens'
         max_tokens: 4096,
-      })
+    };
+
+    // *** SECURITY CHANGE: Removed Authorization header with API key ***
+    const response = await fetch(PROXY_ENDPOINT, {
+      method: 'POST',
+      headers: {
+        'Content-Type': 'application/json'
+        // The Netlify function will securely add the 'Authorization' header 
+      },
+      body: JSON.stringify(payload)
     });
 
     if (!response.ok) {
-      const errorData = await response.json();
-      // Error message from the API
-      throw new Error(errorData.error?.message || "Groq API request failed");
+      // Assume the Netlify proxy function returns error details
+      const errorData = await response.json().catch(() => ({})); 
+      throw new Error(errorData.error?.message || `AI analysis failed: Proxy status ${response.status}`);
     }
 
     const data = await response.json();
-
+    
     // Groq/OpenAI response structure check
     if (!data.choices || !data.choices[0]?.message?.content) {
-      throw new Error("Invalid response from AI (Groq)");
+      throw new Error("Invalid response from AI (Groq proxy)");
     }
 
     const responseText = data.choices[0].message.content;
-
+    
     // Parse JSON from response
     try {
       // Extract JSON from the response (it might be wrapped in markdown code blocks)
@@ -444,7 +452,7 @@ Return ONLY the JSON object.`;
   function displayResults(results) {
     hideLoading();
     resultsSection.style.display = "block";
-
+    
     // Scroll to results
     setTimeout(() => {
       resultsSection.scrollIntoView({ behavior: "smooth", block: "start" });
@@ -479,7 +487,7 @@ Return ONLY the JSON object.`;
     const scoreNumber = document.getElementById("scoreNumber");
     const scoreProgress = document.getElementById("scoreProgress");
     const scoreCircle = document.getElementById("scoreCircle");
-
+    
     // Set color based on category
     const colors = {
       excellent: "#167e6c",
@@ -487,7 +495,7 @@ Return ONLY the JSON object.`;
       needs_improvement: "#d97706",
       poor: "#dc2626"
     };
-
+    
     const color = colors[category] || colors.needs_improvement;
     scoreProgress.style.stroke = color;
     scoreCircle.setAttribute("data-category", category);
@@ -496,7 +504,7 @@ Return ONLY the JSON object.`;
     let currentScore = 0;
     const duration = 1500;
     const increment = targetScore / (duration / 16);
-
+    
     const animateNumber = () => {
       currentScore += increment;
       if (currentScore >= targetScore) {
@@ -507,13 +515,13 @@ Return ONLY the JSON object.`;
         requestAnimationFrame(animateNumber);
       }
     };
-
+    
     // Animate the circle
     const circumference = 2 * Math.PI * 45;
     const offset = circumference - (targetScore / 100) * circumference;
     scoreProgress.style.strokeDasharray = circumference;
     scoreProgress.style.strokeDashoffset = circumference;
-
+    
     setTimeout(() => {
       scoreProgress.style.transition = "stroke-dashoffset 1.5s ease-out";
       scoreProgress.style.strokeDashoffset = offset;
@@ -558,7 +566,7 @@ Return ONLY the JSON object.`;
   function displayIssues(issues) {
     const issuesList = document.getElementById("issuesList");
     const issueCount = document.getElementById("issueCount");
-
+    
     issueCount.textContent = issues.length;
     issuesList.innerHTML = "";
 
@@ -620,7 +628,7 @@ Return ONLY the JSON object.`;
       const data = formatAnalysis[check.key] || { status: "warning", message: "Not analyzed" };
       const div = document.createElement("div");
       div.className = `format-check format-${data.status}`;
-
+      
       const icons = {
         pass: '<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" width="18" height="18"><polyline points="20 6 9 17 4 12"/></svg>',
         warning: '<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" width="18" height="18"><path d="m21.73 18-8-14a2 2 0 0 0-3.48 0l-8 14A2 2 0 0 0 4 21h16a2 2 0 0 0 1.73-3Z"/><line x1="12" y1="9" x2="12" y2="13"/></svg>',
@@ -668,11 +676,11 @@ Return ONLY the JSON object.`;
     };
 
     const pkg = packages[recommendation?.package] || packages.professional;
-
+    
     packageName.textContent = pkg.name;
     packagePrice.textContent = pkg.price;
     recommendationReason.textContent = recommendation?.reason || "Based on your CV analysis, we recommend this package to optimize your resume for ATS systems.";
-
+    
     recommendationCard.setAttribute("data-package", recommendation?.package || "professional");
   }
 
@@ -681,7 +689,7 @@ Return ONLY the JSON object.`;
     uploadSection.style.display = "none";
     loadingSection.style.display = "block";
     resultsSection.style.display = "none";
-
+    
     // Reset all steps
     for (let i = 1; i <= 4; i++) {
       document.getElementById(`step${i}`).classList.remove("active", "completed");
@@ -697,11 +705,11 @@ Return ONLY the JSON object.`;
 
   function updateLoadingStep(step, statusText) {
     document.getElementById("loadingStatus").textContent = statusText;
-
+    
     // Update progress bar
     const progress = (step / 4) * 100;
     document.getElementById("loadingProgressBar").style.width = `${progress}%`;
-
+    
     // Update step indicators
     for (let i = 1; i <= 4; i++) {
       const stepEl = document.getElementById(`step${i}`);
@@ -724,6 +732,4 @@ Return ONLY the JSON object.`;
 
   console.log("CV Checker initialized successfully!");
 });
-
 // End of cv-checker.js
-
