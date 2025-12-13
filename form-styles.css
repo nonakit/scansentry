@@ -604,7 +604,7 @@
   }
 
   .selected-package-display {
-    flex-direction: column;
+    flex-direction: stack;
     gap: 0.25rem;
   }
 
