@@ -1,6 +1,19 @@
 /* ===== CV CHECKER SPECIFIC STYLES ===== */
 /* Extends the main styles.css */
 
+.nav-logo {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  pointer-events: auto;
+  cursor: pointer;
+}
+
+.logo-image {
+  height: 33px; /* Reduced from 40px */
+  width: auto;
+}
+
 /* ===== CHECKER HERO ===== */
 .checker-hero {
   padding: 140px 24px 60px;

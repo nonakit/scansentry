@@ -1,5 +1,18 @@
 /* Form Page Specific Styles */
 
+.nav-logo {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  pointer-events: auto;
+  cursor: pointer;
+}
+
+.logo-image {
+  height: 33px; /* Reduced from 40px */
+  width: auto;
+}
+
 .form-section {
   padding: 8rem 2rem 4rem;
   min-height: 100vh;
