@@ -29,8 +29,6 @@ html {
   display: flex;
   align-items: center;
   gap: 8px;
-  pointer-events: auto;
-  cursor: pointer;
 }
 
 .logo-image {
@@ -1513,4 +1511,5 @@ body {
     }
     .legal-content strong {
       color: var(--text-dark);
+
     }
